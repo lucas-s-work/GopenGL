@@ -25,12 +25,15 @@ type VAOJob struct {
 
 //Job types
 const (
-	CREATE_RENDER_OBJECT byte = 0
-	ADD_SQUARE           byte = 1
-	MODIFY_VERT_SQUARE   byte = 2
-	MODIFY_TEX_SQUARE    byte = 3
-	TRANSLATE_SQUARE     byte = 4
-	ROTATE_SQUARE        byte = 5
+	CREATE_RENDER_OBJECT byte = iota
+	ADD_SQUARE           byte = iota
+	MODIFY_VERT_SQUARE   byte = iota
+	MODIFY_TEX_SQUARE    byte = iota
+	TRANSLATE_SQUARE     byte = iota
+	ROTATE_SQUARE        byte = iota
+	MODIFY_VERT_RECT     byte = iota
+	MODIFY_TEX_RECT      byte = iota
+	ADD_RECT             byte = iota
 )
 
 //Job queues
@@ -39,6 +42,10 @@ var (
 	VAOQueue           = make(chan VAOJob)
 	RenderObjectJobMap = make(map[byte]func(RenderObjectJob))
 	VAOJobMap          = make(map[byte]func(VAOJob))
+)
+
+var (
+	alive = true
 )
 
 /*
@@ -53,6 +60,9 @@ func Listen() {
 	RenderObjectJobMap[MODIFY_TEX_SQUARE] = callModifyTexSquare
 	RenderObjectJobMap[TRANSLATE_SQUARE] = callTranslateSquare
 	RenderObjectJobMap[ROTATE_SQUARE] = callRotateSquare
+	RenderObjectJobMap[MODIFY_VERT_RECT] = callModifyVertRect
+	RenderObjectJobMap[MODIFY_TEX_RECT] = callModifyTexRect
+	RenderObjectJobMap[ADD_RECT] = callAddRect
 
 	defer cleanUp()
 
@@ -66,6 +76,8 @@ func Listen() {
 			Render()
 		}
 	}
+
+	alive = false
 }
 
 var (
@@ -159,6 +171,47 @@ func callRotateSquare(job RenderObjectJob) {
 	)
 }
 
+func callAddRect(job RenderObjectJob) {
+	params := job.params
+
+	freeVert := job.obj.AddRect(
+		params[0].(float32),
+		params[1].(float32),
+		params[2].(float32),
+		params[3].(float32),
+		params[4].(float32),
+		params[5].(float32),
+		params[6].(float32),
+		params[7].(float32),
+	)
+
+	*(*int)(job.retVal) = freeVert
+}
+
+func callModifyTexRect(job RenderObjectJob) {
+	params := job.params
+
+	job.obj.ModifyTexRect(
+		params[0].(int),
+		params[1].(float32),
+		params[2].(float32),
+		params[3].(float32),
+		params[4].(float32),
+	)
+}
+
+func callModifyVertRect(job RenderObjectJob) {
+	params := job.params
+
+	job.obj.ModifyVertRect(
+		params[0].(int),
+		params[1].(float32),
+		params[2].(float32),
+		params[3].(float32),
+		params[4].(float32),
+	)
+}
+
 /*
 Graphics job methods, these enqueue the job to be performed, graphics.go methods MUST NOT be used directly on RenderObjects generated here
 These are all called *Outside* the main thread which the opengl context is running on.
@@ -226,6 +279,19 @@ func (obj *RenderObject) RotateSquareJob(x, y, rot float32) {
 	}
 }
 
+func (obj *RenderObject) AddRectJob(x, y, xTex, yTex, width, height, widthTex, heightTex float32) *int {
+	freeVert := 0
+
+	RenderObjectQueue <- RenderObjectJob{
+		obj,
+		ADD_RECT,
+		[]interface{}{x, y, xTex, yTex, width, height, widthTex, heightTex},
+		unsafe.Pointer(&freeVert),
+	}
+
+	return &freeVert
+}
+
 /*
 Cleanup
 */
@@ -237,6 +303,10 @@ func cleanUp() {
 
 func ShouldClose() bool {
 	return window.ShouldClose()
+}
+
+func Alive() *bool {
+	return &alive
 }
 
 /*

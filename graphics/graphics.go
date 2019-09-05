@@ -114,28 +114,32 @@ func (obj *RenderObject) Delete() {
 // AddSquare ... add a square to the render object, position is from the top left in pixels
 // Returns index of new objects first vertex
 func (obj *RenderObject) AddSquare(x, y, xTex, yTex, width, widthTex float32) int {
+	return obj.AddRect(x, y, xTex, yTex, width, width, widthTex, widthTex)
+}
+
+func (obj *RenderObject) AddRect(x, y, xTex, yTex, width, height, widthTex, heightTex float32) int {
 	verts := []float32{
 		// Upper right triangle
 		x, y,
 		x + width, y,
-		x + width, y - width,
+		x + width, y - height,
 
 		// Lower left triangle
 		x, y,
-		x + width, y - width,
-		x, y - width,
+		x + width, y - height,
+		x, y - height,
 	}
 
 	texs := []float32{
 		// Upper right triangle
 		xTex, yTex,
 		xTex + widthTex, yTex,
-		xTex + widthTex, yTex + widthTex,
+		xTex + widthTex, yTex + heightTex,
 
 		// Lower left triangle
 		xTex, yTex,
-		xTex + widthTex, yTex + widthTex,
-		xTex, yTex + widthTex,
+		xTex + widthTex, yTex + heightTex,
+		xTex, yTex + heightTex,
 	}
 
 	verts = PixToScreen(verts)
@@ -152,16 +156,20 @@ func (obj *RenderObject) AddSquare(x, y, xTex, yTex, width, widthTex float32) in
 }
 
 func (obj *RenderObject) ModifyVertSquare(index int, x, y, width float32) {
+	obj.ModifyVertRect(index, x, y, width, width)
+}
+
+func (obj *RenderObject) ModifyVertRect(index int, x, y, width, height float32) {
 	verts := []float32{
 		// Upper right triangle
 		x, y,
 		x + width, y,
-		x + width, y + width,
+		x + width, y - height,
 
 		// Lower left triangle
 		x, y,
-		x + width, y + width,
-		x, y + width,
+		x + width, y - height,
+		x, y - height,
 	}
 
 	verts = PixToScreen(verts)
@@ -170,16 +178,20 @@ func (obj *RenderObject) ModifyVertSquare(index int, x, y, width float32) {
 }
 
 func (obj *RenderObject) ModifyTexSquare(index int, xTex, yTex, widthTex float32) {
+	obj.ModifyTexRect(index, xTex, yTex, widthTex, widthTex)
+}
+
+func (obj *RenderObject) ModifyTexRect(index int, xTex, yTex, widthTex, heightTex float32) {
 	texs := []float32{
 		// Upper right triangle
 		xTex, yTex,
 		xTex + widthTex, yTex,
-		xTex + widthTex, yTex + widthTex,
+		xTex + widthTex, yTex + heightTex,
 
 		// Lower left triangle
 		xTex, yTex,
-		xTex + widthTex, yTex + widthTex,
-		xTex, yTex + widthTex,
+		xTex + widthTex, yTex + heightTex,
+		xTex, yTex + heightTex,
 	}
 
 	texs = obj.texture.PixToTex(texs)
@@ -190,6 +202,11 @@ func (obj *RenderObject) ModifyTexSquare(index int, xTex, yTex, widthTex float32
 func (obj *RenderObject) ModifySquare(index int, x, y, xTex, yTex, width, widthTex float32) {
 	obj.ModifyVertSquare(index, x, y, width)
 	obj.ModifyTexSquare(index, xTex, yTex, widthTex)
+}
+
+func (obj *RenderObject) ModifyRect(index int, x, y, xTex, yTex, width, height, widthTex, heightTex float32) {
+	obj.ModifyVertRect(index, x, y, width, height)
+	obj.ModifyTexRect(index, x, y, widthTex, heightTex)
 }
 
 // Clear a square, does not delete the object.
