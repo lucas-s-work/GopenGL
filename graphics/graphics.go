@@ -1,7 +1,6 @@
 package graphics
 
 import (
-	"fmt"
 	"gopengl/graphics/opengl"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -114,20 +113,57 @@ func (obj *RenderObject) Delete() {
 // AddSquare ... add a square to the render object, position is from the top left in pixels
 // Returns index of new objects first vertex
 func (obj *RenderObject) AddSquare(x, y, xTex, yTex, width, widthTex float32) int {
-	return obj.AddRect(x, y, xTex, yTex, width, width, widthTex, widthTex)
+	verts := []float32{
+		// Upper right triangle
+		x, y,
+		x + width, y,
+		x + width, y + width,
+
+		// Lower left triangle
+		x, y,
+		x + width, y + width,
+		x, y + width,
+	}
+
+	texs := []float32{
+		// Upper right triangle
+		xTex, yTex,
+		xTex + widthTex, yTex,
+		xTex + widthTex, yTex + widthTex,
+
+		// Lower left triangle
+		xTex, yTex,
+		xTex + widthTex, yTex + widthTex,
+		xTex, yTex + widthTex,
+	}
+
+	verts = PixToScreen(verts)
+	texs = obj.texture.PixToTex(texs)
+
+	if obj.freeVert+6 > obj.maxVert {
+		panic("Render Object Buffer overflow")
+	}
+
+	obj.vao.UpdateBufferIndex(obj.freeVert, verts, texs)
+	obj.freeVert += 6
+
+	return obj.freeVert - 6
 }
+
+// 	return obj.AddRect(x, y, xTex, yTex, width, width, widthTex, widthTex)
+// }
 
 func (obj *RenderObject) AddRect(x, y, xTex, yTex, width, height, widthTex, heightTex float32) int {
 	verts := []float32{
 		// Upper right triangle
 		x, y,
 		x + width, y,
-		x + width, y - height,
+		x + width, y + height,
 
 		// Lower left triangle
 		x, y,
-		x + width, y - height,
-		x, y - height,
+		x + width, y + height,
+		x, y + height,
 	}
 
 	texs := []float32{
@@ -164,11 +200,11 @@ func (obj *RenderObject) ModifyVertRect(index int, x, y, width, height float32) 
 		// Upper right triangle
 		x, y,
 		x + width, y,
-		x + width, y - height,
+		x + width, y + height,
 
 		// Lower left triangle
 		x, y,
-		x + width, y - height,
+		x + width, y + height,
 		x, y - height,
 	}
 
@@ -242,11 +278,10 @@ func PixToScreen(coords []float32) []float32 {
 
 		if even {
 			normedCoords[i] = (coord - halfWidth) / halfWidth
-
-			fmt.Println(normedCoords[i])
 			continue
 		}
-		normedCoords[i] = (coord - halfHeight) / halfHeight
+
+		normedCoords[i] = (halfHeight - coord) / halfHeight
 	}
 
 	return normedCoords

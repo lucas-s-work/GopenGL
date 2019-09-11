@@ -1,6 +1,7 @@
 package opengl
 
 import (
+	"Gopengl/util"
 	"fmt"
 	"image"
 	"image/draw"
@@ -17,7 +18,7 @@ type Texture struct {
 }
 
 func LoadTexture(file string) *Texture {
-	imgFile, err := os.Open(file)
+	imgFile, err := os.Open(util.RelativePath(file))
 	if err != nil {
 		panic(fmt.Errorf("texture %q not found on disk: %v", file, err))
 	}
@@ -91,12 +92,4 @@ func (t *Texture) PixToTex(texs []float32) []float32 {
 	}
 
 	return normedTexs
-}
-
-func test() {
-	if 1 == 1 {
-		fmt.Printf("test")
-	} else {
-		fmt.Printf("test")
-	}
 }

@@ -1,6 +1,7 @@
 package opengl
 
 import (
+	"Gopengl/util"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -41,7 +42,9 @@ Load all desired shaders then call program.Link()
 */
 
 func ReadFile(source string) (string, error) {
-	data, err := ioutil.ReadFile(source)
+	data, err := ioutil.ReadFile(util.RelativePath(source))
+
+	fmt.Println(util.RelativePath(source))
 
 	if err != nil {
 		return "", err
@@ -54,7 +57,7 @@ func (program *Program) LoadVertShader(source string) {
 	rawData, err := ReadFile(source)
 
 	if err != nil {
-		panic(fmt.Errorf("Unable to find vertex shader file: %s", source))
+		panic(fmt.Errorf("Unable to find vertex shader file: %s, err: %s", source, err.Error()))
 	}
 
 	program.loadShader(rawData, VERTSHADER)
