@@ -11,10 +11,35 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
+var (
+	textureUnits = []uint32{
+		gl.TEXTURE0,
+		gl.TEXTURE1,
+		gl.TEXTURE2,
+		gl.TEXTURE3,
+		gl.TEXTURE4,
+		gl.TEXTURE5,
+		gl.TEXTURE6,
+		gl.TEXTURE7,
+		gl.TEXTURE8,
+		gl.TEXTURE9,
+		gl.TEXTURE10,
+		gl.TEXTURE11,
+		gl.TEXTURE12,
+		gl.TEXTURE13,
+		gl.TEXTURE14,
+	}
+	currentTextureUnitId uint32 = 0
+	textureUnitUsed      uint32 = 0
+)
+
+const textureIdsBeforeChange = 8
+
 type Texture struct {
-	id     uint32
-	width  int
-	height int
+	id          uint32
+	width       int
+	height      int
+	textureUnit uint32
 }
 
 func LoadTexture(file string) *Texture {
@@ -37,8 +62,8 @@ func LoadTexture(file string) *Texture {
 	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
 
 	var texture uint32
+	gl.ActiveTexture(currentTextureUnit())
 	gl.GenTextures(1, &texture)
-	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
@@ -55,21 +80,24 @@ func LoadTexture(file string) *Texture {
 		gl.UNSIGNED_BYTE,
 		gl.Ptr(rgba.Pix))
 
-	return &Texture{
+	textureObj := &Texture{
 		texture,
 		bounds.Max.X,
 		bounds.Max.Y,
+		currentTextureUnitId,
 	}
+
+	gl.BindTexture(gl.TEXTURE_2D, 0)
+
+	return textureObj
 }
 
 /*
 Texture usage methods
 */
 
-// TODO add support for multiple texture units if available
-// this works good enough for simple 2d games with only a few sprite sheets
 func (t *Texture) Use() {
-	gl.ActiveTexture(gl.TEXTURE0)
+	gl.ActiveTexture(t.textureUnit)
 	gl.BindTexture(gl.TEXTURE_2D, t.id)
 }
 
@@ -92,4 +120,21 @@ func (t *Texture) PixToTex(texs []float32) []float32 {
 	}
 
 	return normedTexs
+}
+
+// Util
+
+func currentTextureUnit() uint32 {
+	if textureUnitUsed > textureIdsBeforeChange {
+		currentTextureUnitId++
+		textureUnitUsed = 0
+
+		if currentTextureUnitId >= uint32(len(textureUnits)) {
+			panic("No free texture units")
+		}
+	}
+
+	textureUnitUsed++
+
+	return textureUnits[currentTextureUnitId]
 }

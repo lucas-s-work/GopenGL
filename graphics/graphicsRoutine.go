@@ -73,7 +73,7 @@ func Listen() {
 		case job := <-VAOQueue:
 			callVAOJob(job)
 		default:
-			Render()
+			//Render()
 		}
 	}
 
