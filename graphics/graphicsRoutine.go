@@ -29,8 +29,8 @@ const (
 	ADD_SQUARE           byte = iota
 	MODIFY_VERT_SQUARE   byte = iota
 	MODIFY_TEX_SQUARE    byte = iota
-	TRANSLATE_SQUARE     byte = iota
-	ROTATE_SQUARE        byte = iota
+	TRANSLATE            byte = iota
+	ROTATE               byte = iota
 	MODIFY_VERT_RECT     byte = iota
 	MODIFY_TEX_RECT      byte = iota
 	ADD_RECT             byte = iota
@@ -58,8 +58,8 @@ func Listen() {
 	RenderObjectJobMap[ADD_SQUARE] = callAddSquare
 	RenderObjectJobMap[MODIFY_VERT_SQUARE] = callModifyVertSquare
 	RenderObjectJobMap[MODIFY_TEX_SQUARE] = callModifyTexSquare
-	RenderObjectJobMap[TRANSLATE_SQUARE] = callTranslateSquare
-	RenderObjectJobMap[ROTATE_SQUARE] = callRotateSquare
+	RenderObjectJobMap[TRANSLATE] = callTranslate
+	RenderObjectJobMap[ROTATE] = callRotate
 	RenderObjectJobMap[MODIFY_VERT_RECT] = callModifyVertRect
 	RenderObjectJobMap[MODIFY_TEX_RECT] = callModifyTexRect
 	RenderObjectJobMap[ADD_RECT] = callAddRect
@@ -73,7 +73,7 @@ func Listen() {
 		case job := <-VAOQueue:
 			callVAOJob(job)
 		default:
-			//Render()
+			Render()
 		}
 	}
 
@@ -152,19 +152,19 @@ func callModifyTexSquare(job RenderObjectJob) {
 	)
 }
 
-func callTranslateSquare(job RenderObjectJob) {
+func callTranslate(job RenderObjectJob) {
 	params := job.params
 
-	job.obj.TranslateSquare(
+	job.obj.Translate(
 		params[0].(float32),
 		params[1].(float32),
 	)
 }
 
-func callRotateSquare(job RenderObjectJob) {
+func callRotate(job RenderObjectJob) {
 	params := job.params
 
-	job.obj.RotateSquare(
+	job.obj.Rotate(
 		params[0].(float32),
 		params[1].(float32),
 		params[2].(float32),
@@ -264,7 +264,7 @@ func (obj *RenderObject) ModifyTexSquareJob(index *int, x, y, width float32) {
 func (obj *RenderObject) TranslateSquareJob(x, y float32) {
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
-		TRANSLATE_SQUARE,
+		TRANSLATE,
 		[]interface{}{x, y},
 		nil,
 	}
@@ -273,7 +273,7 @@ func (obj *RenderObject) TranslateSquareJob(x, y float32) {
 func (obj *RenderObject) RotateSquareJob(x, y, rot float32) {
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
-		ROTATE_SQUARE,
+		ROTATE,
 		[]interface{}{x, y, rot},
 		nil,
 	}

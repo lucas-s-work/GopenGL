@@ -250,11 +250,11 @@ func (obj *RenderObject) ClearSquare(index int) {
 	obj.ModifyVertSquare(index, 0, 0, 0)
 }
 
-func (obj *RenderObject) RotateSquare(x, y, rad float32) {
+func (obj *RenderObject) Rotate(x, y, rad float32) {
 	obj.vao.SetRotation(x, y, rad)
 }
 
-func (obj *RenderObject) TranslateSquare(x, y float32) {
+func (obj *RenderObject) Translate(x, y float32) {
 	obj.vao.SetTranslation(x, y)
 }
 

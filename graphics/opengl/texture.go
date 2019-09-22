@@ -33,7 +33,7 @@ var (
 	textureUnitUsed      uint32 = 0
 )
 
-const textureIdsBeforeChange = 8
+const textureIdsBeforeChange = 32
 
 type Texture struct {
 	id          uint32

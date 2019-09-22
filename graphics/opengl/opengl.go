@@ -20,8 +20,8 @@ func Render(vaos []*VAO) {
 	for i := 0; i < len(vaos); i++ {
 		vao = vaos[i]
 
-		vao.PrepRender()
-		gl.DrawArrays(gl.TRIANGLES, 0, 3)
+		vertNum := vao.PrepRender()
+		gl.DrawArrays(gl.TRIANGLES, 0, vertNum)
 		vao.FinishRender()
 	}
 }
