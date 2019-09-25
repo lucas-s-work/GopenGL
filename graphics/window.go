@@ -54,6 +54,10 @@ func pollKeys(window *glfw.Window) {
 	KeyMap["d"] = window.GetKey(glfw.KeyD) == glfw.Press
 }
 
+func Key(key string) bool {
+	return KeyMap[key]
+}
+
 func KeyComboPressed(keys []string) bool {
 	for _, val := range keys {
 		if !KeyMap[val] {

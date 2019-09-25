@@ -251,16 +251,27 @@ func (obj *RenderObject) ClearSquare(index int) {
 }
 
 func (obj *RenderObject) Rotate(x, y, rad float32) {
-	obj.vao.SetRotation(x, y, rad)
+	nX, nY := NormVert(x, y)
+
+	obj.vao.SetRotation(nX, nY, rad)
 }
 
 func (obj *RenderObject) Translate(x, y float32) {
-	obj.vao.SetTranslation(x, y)
+	nX, nY := NormVert(x, y)
+
+	obj.vao.SetTranslation(nX, nY)
 }
 
 /*
 Utility methods
 */
+
+func NormVert(x, y float32) (nX, nY float32) {
+	nX = x / (windowWidth / 2)
+	nY = y / (windowHeight / 2)
+
+	return nX, nY
+}
 
 func PixToScreen(coords []float32) []float32 {
 	normedCoords := make([]float32, len(coords))

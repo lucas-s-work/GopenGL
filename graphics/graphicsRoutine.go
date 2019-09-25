@@ -261,7 +261,7 @@ func (obj *RenderObject) ModifyTexSquareJob(index *int, x, y, width float32) {
 	}
 }
 
-func (obj *RenderObject) TranslateSquareJob(x, y float32) {
+func (obj *RenderObject) TranslateJob(x, y float32) {
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
 		TRANSLATE,
@@ -270,7 +270,7 @@ func (obj *RenderObject) TranslateSquareJob(x, y float32) {
 	}
 }
 
-func (obj *RenderObject) RotateSquareJob(x, y, rot float32) {
+func (obj *RenderObject) RotateJob(x, y, rot float32) {
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
 		ROTATE,
