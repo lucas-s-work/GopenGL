@@ -29,6 +29,7 @@ var (
 		gl.TEXTURE13,
 		gl.TEXTURE14,
 	}
+	storedTextures       []*Texture
 	currentTextureUnitId uint32 = 0
 	textureUnitUsed      uint32 = 0
 )
@@ -39,10 +40,22 @@ type Texture struct {
 	id          uint32
 	width       int
 	height      int
+	file        string
 	textureUnit uint32
 }
 
+/**
+Loads a texture, does not reload it if already created
+*/
 func LoadTexture(file string) *Texture {
+	// Load existing texture
+	existingTex := FindTex(file)
+
+	if existingTex != nil {
+		return existingTex
+	}
+
+	// Create new texture if it doesn't exist
 	imgFile, err := os.Open(util.RelativePath(file))
 	if err != nil {
 		panic(fmt.Errorf("texture %q not found on disk: %v", file, err))
@@ -84,12 +97,26 @@ func LoadTexture(file string) *Texture {
 		texture,
 		bounds.Max.X,
 		bounds.Max.Y,
+		file,
 		currentTextureUnitId,
 	}
 
 	gl.BindTexture(gl.TEXTURE_2D, 0)
 
+	//Add texture to texture store
+	storedTextures = append(storedTextures, textureObj)
+
 	return textureObj
+}
+
+func FindTex(file string) *Texture {
+	for _, tex := range storedTextures {
+		if tex.file == file {
+			return tex
+		}
+	}
+
+	return nil
 }
 
 /*

@@ -19,6 +19,15 @@ const (
 	GEOMSHADER = gl.GEOMETRY_SHADER
 )
 
+var (
+	storedShaders []*shader
+)
+
+type shader struct {
+	Id   uint32
+	file string
+}
+
 type Program struct {
 	Id         uint32
 	attributes map[string]uint32
@@ -37,6 +46,10 @@ func CreateProgram(Id uint32) *Program {
 	}
 }
 
+func (program *Program) AttachShader(s *shader) {
+	gl.AttachShader(program.Id, s.Id)
+}
+
 /*
 Load all desired shaders then call program.Link()
 */
@@ -53,7 +66,18 @@ func ReadFile(source string) (string, error) {
 	return string(data[:]) + "\x00", nil
 }
 
+/*
+Load and attach shaders, if the shader has already been loaded it is not re-created.
+*/
 func (program *Program) LoadVertShader(source string) {
+	existingShader := findShader(source)
+
+	if existingShader != nil {
+		program.AttachShader(existingShader)
+
+		return
+	}
+
 	rawData, err := ReadFile(source)
 
 	if err != nil {
@@ -64,6 +88,14 @@ func (program *Program) LoadVertShader(source string) {
 }
 
 func (program *Program) LoadFragShader(source string) {
+	existingShader := findShader(source)
+
+	if existingShader != nil {
+		program.AttachShader(existingShader)
+
+		return
+	}
+
 	rawData, err := ReadFile(source)
 
 	if err != nil {
@@ -94,6 +126,16 @@ func (program *Program) loadShader(rawData string, shaderType uint32) {
 	}
 
 	gl.AttachShader(program.Id, shader)
+}
+
+func findShader(file string) *shader {
+	for _, s := range storedShaders {
+		if s.file == file {
+			return s
+		}
+	}
+
+	return nil
 }
 
 /*
