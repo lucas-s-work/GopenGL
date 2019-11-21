@@ -66,6 +66,10 @@ func ReadFile(source string) (string, error) {
 	return string(data[:]) + "\x00", nil
 }
 
+func test_function() {
+
+}
+
 /*
 Load and attach shaders, if the shader has already been loaded it is not re-created.
 */
