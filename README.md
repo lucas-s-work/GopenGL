@@ -98,7 +98,7 @@ graphics.CreateRenderObjectJob(&ro, vertNum int, texturePath string, defaultShad
 
 While there is no guarantee when jobs will be performed the order of the jobs can be guaranteed so multithreaded code can be written synchronously. 
 
-In order to avoid any possible issues with this avoid using a single render object across multiple go routines.
+In order to ensure that the order of jobs can be guaranteed for each RO, only call jobs for a specific RO on a single go routine. If calls to the same RO are made across multiple routines order is likely to not be preserved.
 
 ## VAO's
 There is currently support for direct VAO interaction for single threaded uses, once required in Battleships multithreaded support will be added.
@@ -142,6 +142,10 @@ vao.UpdateBufferIndex(floatIndex, vertData, texData)
 ```
 
 Analgous functions `UpdateVertBufferIndex` & `UpdateTexBufferIndex` for updating specifically vertData or texData.
+
+### VAO Grouped rotations
+
+VAO's currently support both grouped rotations and global rotations, grouped rotations can be performed on a set of vertices of the VAO not just the entire set of vertices. Grouped rotations are always (with the default shader) performed before the global rotation.
 
 ### VAO Deletion
 ```go
@@ -255,7 +259,8 @@ Features will be added as required by the Battleships project, some currently pl
  - [] full input handling
  - [] window poll jobs
  - [] prioritised jobs
- - [] vao multithreading support
+ - [x] vao multithreading support
+ - [] grouped rotations alongside global rotations
  - [] logging
 
 Currently all error handling is to outright panic, this is because most opengl errors will simply cause a sigterm so error reporting can be difficult, in future catching of errors will be reported especially around jobs with the option to not fail on certain jobs.

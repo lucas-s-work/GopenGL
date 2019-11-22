@@ -1,6 +1,7 @@
 #version 410
 in vec2 vert;
 in vec2 verttexcoord;
+in vec3 rotgroup
 
 uniform vec2 trans;
 uniform vec3 rot;

@@ -66,10 +66,6 @@ func ReadFile(source string) (string, error) {
 	return string(data[:]) + "\x00", nil
 }
 
-func test_function() {
-
-}
-
 /*
 Load and attach shaders, if the shader has already been loaded it is not re-created.
 */
@@ -198,7 +194,7 @@ func (uni *uniform) Attach() {
 		value := (uni.value).(mgl32.Vec3)
 		gl.Uniform3f(int32(uni.id), value.X(), value.Y(), value.Z())
 	default:
-		fmt.Printf("AttachUniform type unsupported")
+		fmt.Printf("Attach Uniform type unsupported")
 	}
 }
 
