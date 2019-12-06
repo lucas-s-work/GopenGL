@@ -217,17 +217,13 @@ Graphics job methods, these enqueue the job to be performed, graphics.go methods
 These are all called *Outside* the main thread which the opengl context is running on.
 */
 
-func CreateRenderObjectJob(size int, texture string, defaultShader bool) *RenderObject {
-	renderObject := CreateEmptyRenderObject()
-
+func CreateRenderObjectJob(ro *RenderObject, size int, texture string, defaultShader bool) {
 	RenderObjectQueue <- RenderObjectJob{
-		renderObject,
+		ro,
 		CREATE_RENDER_OBJECT,
 		[]interface{}{size, texture, defaultShader},
 		nil,
 	}
-
-	return renderObject
 }
 
 func (obj *RenderObject) AddSquareJob(x, y, xTex, yTex, width, widthTex float32) *int {

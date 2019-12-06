@@ -60,6 +60,11 @@ func SetWindow(newWindow *glfw.Window) {
 	window = newWindow
 }
 
+func (ro *RenderObject) Vao() *opengl.VAO {
+	return ro.vao
+
+}
+
 func CreateRenderObject(obj *RenderObject, size int, texture string, defaultShader bool) {
 	vao := opengl.CreateVAO(uint32(size), texture, defaultShader)
 	vao.CreateBuffers()
@@ -211,6 +216,10 @@ func (obj *RenderObject) ModifyVertRect(index int, x, y, width, height float32) 
 	verts = PixToScreen(verts)
 
 	obj.vao.UpdateVertBufferIndex(index, verts)
+}
+
+func ModifyRotRect(index int, x, y, rot float32) {
+
 }
 
 func (obj *RenderObject) ModifyTexSquare(index int, xTex, yTex, widthTex float32) {

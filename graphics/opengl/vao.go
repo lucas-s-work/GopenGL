@@ -18,19 +18,20 @@ const DEFAULT_VECTOR_SIZE = 2
 const DEFAULT_TEXS_SIZE = 2
 
 type VAO struct {
-	ID         uint32
-	vertID     uint32
-	texID      uint32
-	rotGroupID uint32
-	verts      []float32
-	texs       []float32
-	rotGroups  []mgl32.Vec3 // Grouped rotations
-	rot        mgl32.Vec3   // Global VAO rotation
-	trans      mgl32.Vec2   // Global VAO translation, individual translation should be performed on each vertex
-	vertNum    int32
-	shader     *Program
-	created    bool
-	Texture    *Texture
+	ID                     uint32
+	vertID                 uint32
+	texID                  uint32
+	rotGroupID             uint32
+	verts                  []float32
+	texs                   []float32
+	rotGroups              []mgl32.Vec3 // Grouped rotations
+	rot                    mgl32.Vec3   // Global VAO rotation
+	trans                  mgl32.Vec2   // Global VAO translation, individual translation should be performed on each vertex
+	vertNum                int32
+	shader                 *Program
+	created, defaultShader bool
+	Texture                *Texture
+	uniforms               map[string]interface{}
 }
 
 /*
@@ -48,13 +49,8 @@ func CreateVAO(size uint32, textureSource string, defaultShader bool) *VAO {
 
 	var program *Program
 
-	if defaultShader {
-		program = DefaultShader()
-	}
-
 	texture := LoadTexture(textureSource)
-
-	return &VAO{
+	vao := &VAO{
 		vaoID,
 		vertID,
 		rotGroupID,
@@ -67,8 +63,16 @@ func CreateVAO(size uint32, textureSource string, defaultShader bool) *VAO {
 		int32(size),
 		program,
 		false,
+		defaultShader,
 		texture,
+		make(map[string]interface{}),
 	}
+
+	if defaultShader {
+		*program = vao.DefaultShader()
+	}
+
+	return vao
 }
 
 /*
@@ -227,6 +231,7 @@ Render handling
 
 func (vao *VAO) PrepRender() int32 {
 	vao.shader.Use()
+	vao.PrepUniforms()
 	gl.BindVertexArray(vao.ID)
 	vao.Texture.Use()
 
@@ -241,7 +246,7 @@ func (vao *VAO) FinishRender() {
 Utility
 */
 
-func DefaultShader() *Program {
+func (vao *VAO) DefaultShader() Program {
 	program := CreateProgram(0)
 
 	program.LoadVertShader("./shaders/vertex.vert")
@@ -249,13 +254,31 @@ func DefaultShader() *Program {
 	program.Link()
 
 	program.AddAttribute("vert")
-	program.AddAttribute("rotgroup")
+	// Currently unusued, optimized out by the shader compiler so will fail
+	// program.AddAttribute("rotgroup")
 	program.AddAttribute("verttexcoord")
 
-	program.AddUniform("rot", mgl32.Vec3{})
-	program.AddUniform("trans", mgl32.Vec2{})
+	// Uniforms are set per VAO so we need to call this each render cycle
+	vao.AddUniform("rot", mgl32.Vec3{})
+	vao.AddUniform("trans", mgl32.Vec2{})
 
-	return program
+	return *program
+}
+
+/*
+Shader uniform implementation
+*/
+
+func (vao *VAO) AddUniform(name string, value interface{}) {
+	vao.shader.AddUniform(name, value)
+
+	vao.uniforms[name] = value
+}
+
+func (vao *VAO) PrepUniforms() {
+	for name, value := range vao.shader.uniforms {
+		vao.shader.SetUniform(name, value)
+	}
 }
 
 /*
