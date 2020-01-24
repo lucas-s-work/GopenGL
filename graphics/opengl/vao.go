@@ -9,6 +9,7 @@ TODO :
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
@@ -18,20 +19,21 @@ const DEFAULT_VECTOR_SIZE = 2
 const DEFAULT_TEXS_SIZE = 2
 
 type VAO struct {
-	ID                     uint32
-	vertID                 uint32
-	texID                  uint32
-	rotGroupID             uint32
-	verts                  []float32
-	texs                   []float32
-	rotGroups              []mgl32.Vec3 // Grouped rotations
-	rot                    mgl32.Vec3   // Global VAO rotation
-	trans                  mgl32.Vec2   // Global VAO translation, individual translation should be performed on each vertex
-	vertNum                int32
-	shader                 *Program
-	created, defaultShader bool
-	Texture                *Texture
-	uniforms               map[string]interface{}
+	ID                        uint32
+	vertID                    uint32
+	texID                     uint32
+	rotGroupID                uint32
+	windowWidth, windowHeight float32
+	verts                     []float32
+	texs                      []float32
+	rotGroups                 []mgl32.Vec3 // Grouped rotations
+	rot                       mgl32.Vec4   // Global VAO rotation
+	trans                     mgl32.Vec2   // Global VAO translation, individual translation should be performed on each vertex
+	vertNum                   int32
+	shader                    *Program
+	created, defaultShader    bool
+	Texture                   *Texture
+	uniforms                  map[string]interface{}
 }
 
 /*
@@ -39,7 +41,7 @@ VBO creation and modification functions
 */
 
 //CreateVAO ... size of vao in vertices.
-func CreateVAO(size uint32, textureSource string, defaultShader bool) *VAO {
+func CreateVAO(size uint32, textureSource string, defaultShader bool, width float32, height float32) *VAO {
 	var vaoID, vertID, rotGroupID, texID uint32
 
 	gl.GenVertexArrays(1, &vaoID)
@@ -53,12 +55,14 @@ func CreateVAO(size uint32, textureSource string, defaultShader bool) *VAO {
 	vao := &VAO{
 		vaoID,
 		vertID,
-		rotGroupID,
 		texID,
+		rotGroupID,
+		width,
+		height,
 		make([]float32, size*DEFAULT_VECTOR_SIZE),
 		make([]float32, size*DEFAULT_TEXS_SIZE),
 		make([]mgl32.Vec3, size*DEFAULT_VECTOR_SIZE),
-		mgl32.Vec3{},
+		mgl32.Vec4{},
 		mgl32.Vec2{},
 		int32(size),
 		program,
@@ -68,9 +72,7 @@ func CreateVAO(size uint32, textureSource string, defaultShader bool) *VAO {
 		make(map[string]interface{}),
 	}
 
-	if defaultShader {
-		*program = vao.DefaultShader()
-	}
+	vao.DefaultShader()
 
 	return vao
 }
@@ -200,7 +202,7 @@ Global rotation
 */
 
 func (vao *VAO) SetRotation(x, y, rad float32) {
-	vao.rot = mgl32.Vec3{x, y, rad}
+	vao.rot = mgl32.Vec4{x, y, float32(math.Cos(float64(rad))), float32(math.Sin(float64(rad)))}
 	vao.shader.SetUniform("rot", vao.rot)
 }
 
@@ -248,6 +250,7 @@ Utility
 
 func (vao *VAO) DefaultShader() Program {
 	program := CreateProgram(0)
+	vao.AttachProgram(program)
 
 	program.LoadVertShader("./shaders/vertex.vert")
 	program.LoadFragShader("./shaders/fragment.frag")
@@ -258,11 +261,19 @@ func (vao *VAO) DefaultShader() Program {
 	// program.AddAttribute("rotgroup")
 	program.AddAttribute("verttexcoord")
 
-	// Uniforms are set per VAO so we need to call this each render cycle
-	vao.AddUniform("rot", mgl32.Vec3{})
+	// Add and set rotation uniform
+	vao.AddUniform("rot", mgl32.Vec4{})
+	vao.SetRotation(0, 0, 0)
+
+	// Other uniforms can use default values.
 	vao.AddUniform("trans", mgl32.Vec2{})
+	vao.AddUniform("dim", mgl32.Vec2{vao.windowWidth, vao.windowHeight})
 
 	return *program
+}
+
+func (vao *VAO) AttachProgram(program *Program) {
+	vao.shader = program
 }
 
 /*
@@ -276,8 +287,8 @@ func (vao *VAO) AddUniform(name string, value interface{}) {
 }
 
 func (vao *VAO) PrepUniforms() {
-	for name, value := range vao.shader.uniforms {
-		vao.shader.SetUniform(name, value)
+	for id, uni := range vao.shader.uniforms {
+		vao.shader.SetUniform(id, uni.Value())
 	}
 }
 

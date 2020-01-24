@@ -185,6 +185,14 @@ type uniform struct {
 	value interface{}
 }
 
+func (uni *uniform) ID() uint32 {
+	return uni.id
+}
+
+func (uni *uniform) Value() interface{} {
+	return uni.value
+}
+
 func (uni *uniform) Attach() {
 	switch uni.value.(type) {
 	case mgl32.Vec2:
@@ -193,8 +201,11 @@ func (uni *uniform) Attach() {
 	case mgl32.Vec3:
 		value := (uni.value).(mgl32.Vec3)
 		gl.Uniform3f(int32(uni.id), value.X(), value.Y(), value.Z())
+	case mgl32.Vec4:
+		value := (uni.value).(mgl32.Vec4)
+		gl.Uniform4f(int32(uni.id), value.X(), value.Y(), value.Z(), value.W())
 	default:
-		fmt.Printf("Attach Uniform type unsupported")
+		panic("Unsupported uniform type")
 	}
 }
 

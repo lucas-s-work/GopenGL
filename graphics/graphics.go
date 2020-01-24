@@ -66,7 +66,7 @@ func (ro *RenderObject) Vao() *opengl.VAO {
 }
 
 func CreateRenderObject(obj *RenderObject, size int, texture string, defaultShader bool) {
-	vao := opengl.CreateVAO(uint32(size), texture, defaultShader)
+	vao := opengl.CreateVAO(uint32(size), texture, defaultShader, windowWidth, windowHeight)
 	vao.CreateBuffers()
 
 	obj.vao = vao
@@ -142,7 +142,8 @@ func (obj *RenderObject) AddSquare(x, y, xTex, yTex, width, widthTex float32) in
 		xTex, yTex + widthTex,
 	}
 
-	verts = PixToScreen(verts)
+	// Removed as vertex scaling performed in shader
+	// verts = PixToScreen(verts)
 	texs = obj.texture.PixToTex(texs)
 
 	if obj.freeVert+6 > obj.maxVert {
@@ -183,7 +184,8 @@ func (obj *RenderObject) AddRect(x, y, xTex, yTex, width, height, widthTex, heig
 		xTex, yTex + heightTex,
 	}
 
-	verts = PixToScreen(verts)
+	// Removed as vertex scaling performed in shader now.
+	// verts = PixToScreen(verts)
 	texs = obj.texture.PixToTex(texs)
 
 	if obj.freeVert+6 > obj.maxVert {
@@ -213,7 +215,7 @@ func (obj *RenderObject) ModifyVertRect(index int, x, y, width, height float32) 
 		x, y - height,
 	}
 
-	verts = PixToScreen(verts)
+	// verts = PixToScreen(verts)
 
 	obj.vao.UpdateVertBufferIndex(index, verts)
 }
@@ -282,6 +284,7 @@ func NormVert(x, y float32) (nX, nY float32) {
 	return nX, nY
 }
 
+// should not be used with default shader, scaling occurs by default.
 func PixToScreen(coords []float32) []float32 {
 	normedCoords := make([]float32, len(coords))
 	even := false
