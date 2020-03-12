@@ -215,7 +215,7 @@ func (vao *VAO) SetGroupedRotation(x, y, rad float32, start, end int) {
 	c := float32(math.Cos(float64(rad)))
 	s := float32(math.Sin(float64(rad)))
 
-	for i := start; i <= end; i++ {
+	for i := start; i < end; i++ {
 		vao.rotGroups[i] = mgl32.Vec4{x, y, c, s}
 	}
 }

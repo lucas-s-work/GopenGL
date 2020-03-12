@@ -219,6 +219,10 @@ func callSetGroupedRotation(job RenderObjectJob) {
 	)
 }
 
+func callUpdateBuffers(job RenderObjectJob) {
+	job.obj.vao.UpdateBuffers()
+}
+
 /*
 Graphics job methods, these enqueue the job to be performed, graphics.go methods MUST NOT be used directly on RenderObjects generated here
 These are all called *Outside* the main thread which the opengl context is running on.
@@ -320,6 +324,15 @@ func (obj *RenderObject) AddRectJob(x, y, xTex, yTex, width, height, widthTex, h
 	}
 
 	return &freeVert
+}
+
+func (obj *RenderObject) UpdateBuffersJob() {
+	RenderObjectQueue <- RenderObjectJob{
+		obj,
+		nil,
+		nil,
+		callUpdateBuffers,
+	}
 }
 
 /*
