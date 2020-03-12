@@ -26,7 +26,7 @@ type VAO struct {
 	windowWidth, windowHeight float32
 	verts                     []float32
 	texs                      []float32
-	rotGroups                 []mgl32.Vec3 // Grouped rotations
+	rotGroups                 []mgl32.Vec4 // Grouped rotations
 	rot                       mgl32.Vec4   // Global VAO rotation
 	trans                     mgl32.Vec2   // Global VAO translation, individual translation should be performed on each vertex
 	vertNum                   int32
@@ -61,7 +61,7 @@ func CreateVAO(size uint32, textureSource string, defaultShader bool, width floa
 		height,
 		make([]float32, size*DEFAULT_VECTOR_SIZE),
 		make([]float32, size*DEFAULT_TEXS_SIZE),
-		make([]mgl32.Vec3, size*DEFAULT_VECTOR_SIZE),
+		make([]mgl32.Vec4, size),
 		mgl32.Vec4{},
 		mgl32.Vec2{},
 		int32(size),
@@ -98,10 +98,11 @@ func (vao *VAO) CreateBuffers() {
 
 	//grouped rotation buffer
 	gl.BindBuffer(gl.ARRAY_BUFFER, vao.rotGroupID)
-	rotGroups := destructureVec3Array(vao.rotGroups)
+	vao.ResetGroupedRotation()
+	rotGroups := destructureVecArray(vao.rotGroups)
 	gl.BufferData(gl.ARRAY_BUFFER, 4*len(rotGroups), gl.Ptr(rotGroups), gl.DYNAMIC_DRAW)
 	rotGroupAttrib := vao.shader.EnableAttribute("rotgroup")
-	gl.VertexAttribPointer(rotGroupAttrib, DEFAULT_VECTOR_SIZE+1, gl.FLOAT, false, 0, nil)
+	gl.VertexAttribPointer(rotGroupAttrib, 4, gl.FLOAT, false, 0, nil)
 
 	//texture buffer
 	gl.BindBuffer(gl.ARRAY_BUFFER, vao.texID)
@@ -127,7 +128,7 @@ func (vao *VAO) UpdateBuffers() {
 
 	//Grouped rotations
 	gl.BindBuffer(gl.ARRAY_BUFFER, vao.rotGroupID)
-	rotGroups := destructureVec3Array(vao.rotGroups)
+	rotGroups := destructureVecArray(vao.rotGroups)
 	gl.BufferSubData(gl.ARRAY_BUFFER, 0, 4*len(rotGroups), gl.Ptr(rotGroups))
 
 	// Texs
@@ -148,7 +149,7 @@ func (vao *VAO) UpdateBufferIndex(index int, vert_data []float32, tex_data []flo
 }
 
 // UpdateBufferData ... set the vert data of the vao and update the buffer
-func (vao *VAO) UpdateBufferData(vertData []float32, texData []float32, rotGroupData []mgl32.Vec3) {
+func (vao *VAO) UpdateBufferData(vertData []float32, texData []float32, rotGroupData []mgl32.Vec4) {
 	vao.SetData(vertData, texData, rotGroupData)
 	vao.UpdateBuffers()
 }
@@ -158,7 +159,7 @@ func (vao *VAO) UpdateVertBufferData(vertData []float32) {
 	vao.UpdateBuffers()
 }
 
-func (vao *VAO) UpdateRotGroupBufferData(rotGroupData []mgl32.Vec3) {
+func (vao *VAO) UpdateRotGroupBufferData(rotGroupData []mgl32.Vec4) {
 	vao.rotGroups = rotGroupData
 	vao.UpdateBuffers()
 }
@@ -191,7 +192,7 @@ func (vao *VAO) UpdateTexBufferIndex(index int, texData []float32) {
 }
 
 // SetData ... set the vert/tex data of the vao, does not update the buffer
-func (vao *VAO) SetData(vertData []float32, texData []float32, rotGroupData []mgl32.Vec3) {
+func (vao *VAO) SetData(vertData []float32, texData []float32, rotGroupData []mgl32.Vec4) {
 	vao.verts = vertData
 	vao.texs = texData
 	vao.rotGroups = rotGroupData
@@ -211,8 +212,21 @@ Per group rotation, start and end are the start and end vertices
 */
 
 func (vao *VAO) SetGroupedRotation(x, y, rad float32, start, end int) {
+	c := float32(math.Cos(float64(rad)))
+	s := float32(math.Sin(float64(rad)))
+
 	for i := start; i <= end; i++ {
-		vao.rotGroups[i] = mgl32.Vec3{x, y, rad}
+		vao.rotGroups[i] = mgl32.Vec4{x, y, c, s}
+	}
+}
+
+func (vao *VAO) SetAllGroupedRotation(x, y, rad float32) {
+	vao.SetGroupedRotation(x, y, rad, 0, len(vao.rotGroups))
+}
+
+func (vao *VAO) ResetGroupedRotation() {
+	for i := 0; i < len(vao.rotGroups); i++ {
+		vao.rotGroups[i] = mgl32.Vec4{0, 0, 1, 0}
 	}
 }
 
@@ -258,7 +272,7 @@ func (vao *VAO) DefaultShader() Program {
 
 	program.AddAttribute("vert")
 	// Currently unusued, optimized out by the shader compiler so will fail
-	// program.AddAttribute("rotgroup")
+	program.AddAttribute("rotgroup")
 	program.AddAttribute("verttexcoord")
 
 	// Add and set rotation uniform
@@ -295,13 +309,14 @@ func (vao *VAO) PrepUniforms() {
 /*
 converts an array of Vec3's into a float32 array for use by vbo's
 */
-func destructureVec3Array(vecs []mgl32.Vec3) []float32 {
-	vecFloats := make([]float32, len(vecs)*3)
+func destructureVecArray(vecs []mgl32.Vec4) []float32 {
+	vecFloats := make([]float32, len(vecs)*4)
 
 	for i, vec := range vecs {
-		vecFloats[i*3] = vec.X()
-		vecFloats[i*3+1] = vec.Y()
-		vecFloats[i*3+2] = vec.Z()
+		vecFloats[i*4] = vec.X()
+		vecFloats[i*4+1] = vec.Y()
+		vecFloats[i*4+2] = vec.Z()
+		vecFloats[i*4+3] = vec.W()
 	}
 
 	return vecFloats

@@ -10,10 +10,10 @@ Go routine calls for graphics methods
 */
 
 type RenderObjectJob struct {
-	obj    *RenderObject
-	name   byte
-	params []interface{}
-	retVal unsafe.Pointer
+	obj      *RenderObject
+	params   []interface{}
+	retVal   unsafe.Pointer
+	callable func(RenderObjectJob)
 }
 
 type VAOJob struct {
@@ -23,25 +23,16 @@ type VAOJob struct {
 	retVal unsafe.Pointer
 }
 
-//Job types
-const (
-	CREATE_RENDER_OBJECT byte = iota
-	ADD_SQUARE           byte = iota
-	MODIFY_VERT_SQUARE   byte = iota
-	MODIFY_TEX_SQUARE    byte = iota
-	TRANSLATE            byte = iota
-	ROTATE               byte = iota
-	MODIFY_VERT_RECT     byte = iota
-	MODIFY_TEX_RECT      byte = iota
-	ADD_RECT             byte = iota
-)
+/*
+TODO
+Remove job mappings, pass function as pointer into job instead.
+*/
 
 //Job queues
 var (
-	RenderObjectQueue  = make(chan RenderObjectJob)
-	VAOQueue           = make(chan VAOJob)
-	RenderObjectJobMap = make(map[byte]func(RenderObjectJob))
-	VAOJobMap          = make(map[byte]func(VAOJob))
+	RenderObjectQueue = make(chan RenderObjectJob)
+	VAOQueue          = make(chan VAOJob)
+	VAOJobMap         = make(map[byte]func(VAOJob))
 )
 
 var (
@@ -53,16 +44,6 @@ Job handling
 */
 
 func Listen() {
-	// Setup job maps
-	RenderObjectJobMap[CREATE_RENDER_OBJECT] = callCreateRenderObject
-	RenderObjectJobMap[ADD_SQUARE] = callAddSquare
-	RenderObjectJobMap[MODIFY_VERT_SQUARE] = callModifyVertSquare
-	RenderObjectJobMap[MODIFY_TEX_SQUARE] = callModifyTexSquare
-	RenderObjectJobMap[TRANSLATE] = callTranslate
-	RenderObjectJobMap[ROTATE] = callRotate
-	RenderObjectJobMap[MODIFY_VERT_RECT] = callModifyVertRect
-	RenderObjectJobMap[MODIFY_TEX_RECT] = callModifyTexRect
-	RenderObjectJobMap[ADD_RECT] = callAddRect
 
 	defer cleanUp()
 
@@ -86,7 +67,7 @@ var (
 )
 
 func callRenderObjectJob(job RenderObjectJob) {
-	RenderObjectJobMap[job.name](job)
+	job.callable(job)
 
 	checkRender()
 }
@@ -212,6 +193,32 @@ func callModifyVertRect(job RenderObjectJob) {
 	)
 }
 
+func callResetGroupedRotation(job RenderObjectJob) {
+	job.obj.ResetGroupedRotation()
+}
+
+func callSetAllGroupedRotation(job RenderObjectJob) {
+	params := job.params
+
+	job.obj.SetAllGroupedRotation(
+		params[0].(float32),
+		params[1].(float32),
+		params[2].(float32),
+	)
+}
+
+func callSetGroupedRotation(job RenderObjectJob) {
+	params := job.params
+
+	job.obj.SetGroupedRotation(
+		params[0].(float32),
+		params[1].(float32),
+		params[2].(float32),
+		params[3].(int),
+		params[4].(int),
+	)
+}
+
 /*
 Graphics job methods, these enqueue the job to be performed, graphics.go methods MUST NOT be used directly on RenderObjects generated here
 These are all called *Outside* the main thread which the opengl context is running on.
@@ -220,9 +227,9 @@ These are all called *Outside* the main thread which the opengl context is runni
 func CreateRenderObjectJob(ro *RenderObject, size int, texture string, defaultShader bool) {
 	RenderObjectQueue <- RenderObjectJob{
 		ro,
-		CREATE_RENDER_OBJECT,
 		[]interface{}{size, texture, defaultShader},
 		nil,
+		callCreateRenderObject,
 	}
 }
 
@@ -231,9 +238,9 @@ func (obj *RenderObject) AddSquareJob(x, y, xTex, yTex, width, widthTex float32)
 
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
-		ADD_SQUARE,
 		[]interface{}{x, y, xTex, yTex, width, widthTex},
 		unsafe.Pointer(&freeVert),
+		callAddSquare,
 	}
 
 	return &freeVert
@@ -242,36 +249,63 @@ func (obj *RenderObject) AddSquareJob(x, y, xTex, yTex, width, widthTex float32)
 func (obj *RenderObject) ModifyVertSquareJob(index *int, x, y, width float32) {
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
-		MODIFY_VERT_SQUARE,
 		[]interface{}{*index, x, y, width},
 		nil,
+		callModifyVertSquare,
 	}
 }
 
 func (obj *RenderObject) ModifyTexSquareJob(index *int, x, y, width float32) {
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
-		MODIFY_TEX_SQUARE,
 		[]interface{}{*index, x, y, width},
 		nil,
+		callModifyTexSquare,
 	}
 }
 
 func (obj *RenderObject) TranslateJob(x, y float32) {
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
-		TRANSLATE,
 		[]interface{}{x, y},
 		nil,
+		callTranslate,
 	}
 }
 
 func (obj *RenderObject) RotateJob(x, y, rot float32) {
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
-		ROTATE,
 		[]interface{}{x, y, rot},
 		nil,
+		callRotate,
+	}
+}
+
+func (obj *RenderObject) ResetGroupedRotationJob() {
+	RenderObjectQueue <- RenderObjectJob{
+		obj,
+		nil,
+		nil,
+		callResetGroupedRotation,
+	}
+}
+
+func (obj *RenderObject) SetAllGroupedRotationJob(x, y, rad float32) {
+	RenderObjectQueue <- RenderObjectJob{
+		obj,
+		[]interface{}{x, y, rad},
+		nil,
+		callSetAllGroupedRotation,
+	}
+}
+
+func (obj *RenderObject) SetGroupedRotationJob(x, y, rad float32, start, end int) {
+	RenderObjectQueue <- RenderObjectJob{
+		obj,
+		[]interface{}{x, y, rad, start, end},
+		nil,
+		callSetGroupedRotation,
 	}
 }
 
@@ -280,9 +314,9 @@ func (obj *RenderObject) AddRectJob(x, y, xTex, yTex, width, height, widthTex, h
 
 	RenderObjectQueue <- RenderObjectJob{
 		obj,
-		ADD_RECT,
 		[]interface{}{x, y, xTex, yTex, width, height, widthTex, heightTex},
 		unsafe.Pointer(&freeVert),
+		callAddRect,
 	}
 
 	return &freeVert

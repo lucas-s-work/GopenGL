@@ -274,6 +274,22 @@ func (obj *RenderObject) Translate(x, y float32) {
 }
 
 /*
+Rotation group methods
+*/
+
+func (obj *RenderObject) ResetGroupedRotation() {
+	obj.vao.ResetGroupedRotation()
+}
+
+func (obj *RenderObject) SetAllGroupedRotation(x, y, rad float32) {
+	obj.vao.SetAllGroupedRotation(x, y, rad)
+}
+
+func (obj *RenderObject) SetGroupedRotation(x, y, rad float32, start, end int) {
+	obj.vao.SetGroupedRotation(x, y, rad, start, end)
+}
+
+/*
 Utility methods
 */
 
