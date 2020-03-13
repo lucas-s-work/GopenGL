@@ -1,6 +1,6 @@
 #version 410
 in vec2 vert;
-in vec3 rotgroup;
+in vec4 rotgroup;
 in vec2 verttexcoord;
 
 //Translation, window dimension scaling, rotation
@@ -12,15 +12,25 @@ out vec2 fragtexcoord;
 void main(){
     // Set tex coords for frag shader
     fragtexcoord=verttexcoord;
+    vec2 pos=vert;
     
-    // Translate
-    vec2 pos=vert+trans;
-    
-    // Apply uniform rotation
-    vec2 rotcenter=vec2(rot.x,rot.y);
-    pos=pos-rotcenter;
+    //Apply rotgroup rotation first, we want local changes then global changes to each vertex
+    vec2 rotcenter=vec2(rotgroup.x,rotgroup.y);
+    pos-=rotcenter;
     
     mat2 rotmat=mat2(
+        rotgroup.z,rotgroup.w,
+        -rotgroup.w,rotgroup.z
+    );
+    pos=rotmat*pos;
+    
+    pos+=rotcenter;
+    
+    // Apply uniform rotation
+    rotcenter=vec2(rot.x,rot.y);
+    pos=pos-rotcenter;
+    
+    rotmat=mat2(
         rot.z,rot.w,
         -rot.w,rot.z
     );
@@ -29,12 +39,9 @@ void main(){
     
     pos=pos+rotcenter;
     
-    // Apply rotgroup rotation
-    // Not yet implemented
-    
     // Apply screen scaling from pixel coordinates
     pos.x=(pos.x/(.5*dim.x))-1;
     pos.y=1-(pos.y/(.5*dim.y));
     
-    gl_Position=vec4(pos,0.,1.);
+    gl_Position=vec4(pos+trans,0.,1.);
 }

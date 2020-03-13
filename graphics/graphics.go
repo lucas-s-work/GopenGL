@@ -268,7 +268,7 @@ func (obj *RenderObject) Rotate(x, y, rad float32) {
 }
 
 func (obj *RenderObject) Translate(x, y float32) {
-	nX, nY := NormVert(x, y)
+	nX, nY := NormVert(x, -y)
 
 	obj.vao.SetTranslation(nX, nY)
 }
