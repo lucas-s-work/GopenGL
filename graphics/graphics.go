@@ -49,6 +49,7 @@ type RenderObject struct {
 	texture  *opengl.Texture
 	freeVert int
 	maxVert  int
+	ptrVars  []*float32
 }
 
 var renderObjects = make([]*RenderObject, 0)
@@ -73,6 +74,9 @@ func CreateRenderObject(obj *RenderObject, size int, texture string, defaultShad
 	obj.texture = vao.Texture
 	obj.freeVert = 0
 	obj.maxVert = size
+
+	// Init pointer vars
+	obj.InitPointers()
 
 	renderObjects = append(renderObjects, obj)
 }
@@ -104,6 +108,7 @@ func (obj *RenderObject) Render() {
 }
 
 func (obj *RenderObject) PrepRender() int32 {
+	obj.PrepPointers()
 	return obj.vao.PrepRender()
 }
 
@@ -267,12 +272,6 @@ func (obj *RenderObject) Rotate(x, y, rad float32) {
 	obj.vao.SetRotation(nX, nY, rad)
 }
 
-func (obj *RenderObject) Translate(x, y float32) {
-	nX, nY := NormVert(x, -y)
-
-	obj.vao.SetTranslation(nX, nY)
-}
-
 /*
 Rotation group methods
 */
@@ -287,6 +286,60 @@ func (obj *RenderObject) SetAllGroupedRotation(x, y, rad float32) {
 
 func (obj *RenderObject) SetGroupedRotation(x, y, rad float32, start, end int) {
 	obj.vao.SetGroupedRotation(x, y, rad, start, end)
+}
+
+/*
+Pointer methods, variables that change but need checking each render cycle
+*/
+
+const (
+	transXPtr = iota
+	transYPtr = iota
+	camXPtr   = iota
+	camYPtr   = iota
+	zoomPtr   = iota
+	ptrNum    = iota
+)
+
+func (obj *RenderObject) SetTranslate(x, y *float32) {
+	obj.ptrVars[transXPtr] = x
+	obj.ptrVars[transYPtr] = y
+}
+
+func (obj *RenderObject) SetCamera(x, y *float32) {
+	obj.ptrVars[camXPtr] = x
+	obj.ptrVars[camYPtr] = y
+}
+
+func (obj *RenderObject) SetZoom(z *float32) {
+	obj.ptrVars[zoomPtr] = z
+}
+
+func (obj *RenderObject) InitPointers() {
+	var (
+		x float32 = 0
+		y float32 = 0
+		z float32 = 1
+	)
+
+	obj.ptrVars = make([]*float32, ptrNum)
+
+	obj.SetTranslate(&x, &y)
+	obj.SetCamera(&x, &y)
+	obj.SetZoom(&z)
+}
+
+func (obj *RenderObject) PrepPointers() {
+	// Set camera
+	nX, nY := NormVert(*obj.ptrVars[camXPtr], *obj.ptrVars[camYPtr])
+	obj.vao.SetCamera(nX, nY)
+
+	// Set Translation
+	nX, nY = NormVert(*obj.ptrVars[transXPtr], *obj.ptrVars[transYPtr])
+	obj.vao.SetTranslation(nX, nY-2)
+
+	// Set zoom
+	obj.vao.SetZoom(*obj.ptrVars[zoomPtr])
 }
 
 /*

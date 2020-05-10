@@ -34,6 +34,8 @@ type VAO struct {
 	created, defaultShader    bool
 	Texture                   *Texture
 	uniforms                  map[string]interface{}
+	cam                       mgl32.Vec2
+	zoom                      float32
 }
 
 /*
@@ -70,6 +72,8 @@ func CreateVAO(size uint32, textureSource string, defaultShader bool, width floa
 		defaultShader,
 		texture,
 		make(map[string]interface{}),
+		mgl32.Vec2{},
+		1,
 	}
 
 	vao.DefaultShader()
@@ -235,6 +239,16 @@ func (vao *VAO) SetTranslation(x, y float32) {
 	vao.shader.SetUniform("trans", vao.trans)
 }
 
+func (vao *VAO) SetCamera(x, y float32) {
+	vao.cam = mgl32.Vec2{x, y}
+	vao.shader.SetUniform("cam", vao.cam)
+}
+
+func (vao *VAO) SetZoom(z float32) {
+	vao.zoom = z
+	vao.shader.SetUniform("zoom", vao.zoom)
+}
+
 func (vao *VAO) Delete() {
 	gl.DeleteBuffers(1, &vao.vertID)
 	gl.DeleteBuffers(1, &vao.texID)
@@ -280,8 +294,12 @@ func (vao *VAO) DefaultShader() Program {
 	vao.SetRotation(0, 0, 0)
 
 	// Other uniforms can use default values.
+	var zoom float32 = 1.5
+
 	vao.AddUniform("trans", mgl32.Vec2{})
 	vao.AddUniform("dim", mgl32.Vec2{vao.windowWidth, vao.windowHeight})
+	vao.AddUniform("cam", mgl32.Vec2{})
+	vao.AddUniform("zoom", zoom)
 
 	return *program
 }

@@ -2,6 +2,7 @@ package graphics
 
 import (
 	"gopengl/graphics/opengl"
+	"time"
 	"unsafe"
 )
 
@@ -44,6 +45,9 @@ Job handling
 */
 
 func Listen() {
+	if &renderDelta == nil {
+		SetFrameRate(60, 5)
+	}
 
 	defer cleanUp()
 
@@ -54,16 +58,33 @@ func Listen() {
 		case job := <-VAOQueue:
 			callVAOJob(job)
 		default:
-			Render()
+			t := time.Now()
+
+			if t.Sub(lastRender).Nanoseconds() >= renderDelta {
+				lastRender = t
+				Render()
+			} else {
+				// time.Sleep(renderSleep)
+			}
+
 		}
 	}
 
 	alive = false
 }
 
+// SetFrameRate ... Rate: Frame Rate in fps, Sampling: The maximum number of times to check the render queue inbetween frames.
+func SetFrameRate(rate int, sampling int) {
+	renderDelta = int64(1000000000 / rate)
+	renderSleep = time.Duration(1000000000 / (sampling * rate))
+}
+
 var (
 	maxCompletedJobs uint16 = 500
 	completedJobs    uint16
+	lastRender       time.Time
+	renderDelta      int64
+	renderSleep      time.Duration
 )
 
 func callRenderObjectJob(job RenderObjectJob) {
@@ -130,15 +151,6 @@ func callModifyTexSquare(job RenderObjectJob) {
 		params[1].(float32),
 		params[2].(float32),
 		params[3].(float32),
-	)
-}
-
-func callTranslate(job RenderObjectJob) {
-	params := job.params
-
-	job.obj.Translate(
-		params[0].(float32),
-		params[1].(float32),
 	)
 }
 
@@ -265,15 +277,6 @@ func (obj *RenderObject) ModifyTexSquareJob(index *int, x, y, width float32) {
 		[]interface{}{*index, x, y, width},
 		nil,
 		callModifyTexSquare,
-	}
-}
-
-func (obj *RenderObject) TranslateJob(x, y float32) {
-	RenderObjectQueue <- RenderObjectJob{
-		obj,
-		[]interface{}{x, y},
-		nil,
-		callTranslate,
 	}
 }
 

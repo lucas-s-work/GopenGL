@@ -195,6 +195,9 @@ func (uni *uniform) Value() interface{} {
 
 func (uni *uniform) Attach() {
 	switch uni.value.(type) {
+	case float32:
+		value := (uni.value).(float32)
+		gl.Uniform1f(int32(uni.id), value)
 	case mgl32.Vec2:
 		value := (uni.value).(mgl32.Vec2)
 		gl.Uniform2f(int32(uni.id), value.X(), value.Y())
